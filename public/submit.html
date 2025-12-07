@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Submit Menu Item</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Submit Menu Item</h1>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/submit.html">Submit Menu</a>
+      </nav>
+    </header>
+    <main>
+      <form id="menu-form" class="menu-form">
+        <div class="form-group">
+          <label for="hostel">Hostel: *</label>
+          <select id="hostel" name="hostel" required>
+            <option value="">-- Select Hostel --</option>
+            <option value="Ellora">Ellora</option>
+            <option value="Hampi">Hampi</option>
+            <option value="Shilpa">Shilpa</option>
+            <option value="Ajantha">Ajantha</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="mealType">Meal Type: *</label>
+          <select id="mealType" name="mealType" required>
+            <option value="">-- Select Meal Type --</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="dishes">Dishes: *</label>
+          <textarea id="dishes" name="dishes" rows="4" placeholder="e.g., Idli, Sambar, Chutney" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="createdBy">Added By (optional):</label>
+          <input type="text" id="createdBy" name="createdBy" placeholder="Your name" />
+        </div>
+
+        <div class="form-group">
+          <label for="photo">Photo (optional, jpg/png/webp max 3MB):</label>
+          <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp" />
+        </div>
+
+        <button type="submit" class="btn-submit">Submit Menu</button>
+      </form>
+
+      <div id="response-container" style="display: none;">
+        <div id="response-message" class="response-message"></div>
+        <button onclick="resetForm()" class="btn-reset">Submit Another</button>
+      </div>
+    </main>
+    <footer>
+      <p>&copy; 2025 Mess Menu. All rights reserved.</p>
+    </footer>
+
+    <script>
+      document.getElementById('menu-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(document.getElementById('menu-form'));
+
+        try {
+          const response = await fetch('/api/menus', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          const responseContainer = document.getElementById('response-container');
+          const responseMessage = document.getElementById('response-message');
+
+          if (result.success) {
+            responseMessage.className = 'response-message success';
+            responseMessage.textContent = '✓ Menu submitted successfully!';
+            document.getElementById('menu-form').style.display = 'none';
+
+            // Trigger refresh on home page via localStorage
+            localStorage.setItem('menuRefresh', Date.now().toString());
+
+            // Redirect to home after 1.5 seconds
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1500);
+          } else {
+            responseMessage.className = 'response-message error';
+            responseMessage.textContent = `✗ Error: ${result.message || 'Unknown error'}`;
+            document.getElementById('menu-form').style.display = 'block';
+          }
+
+          responseContainer.style.display = 'block';
+        } catch (error) {
+          console.error('Error:', error);
+          const responseContainer = document.getElementById('response-container');
+          const responseMessage = document.getElementById('response-message');
+          responseMessage.className = 'response-message error';
+          responseMessage.textContent = `✗ Error: ${error.message}`;
+          responseContainer.style.display = 'block';
+        }
+      });
+
+      function resetForm() {
+        document.getElementById('menu-form').reset();
+        document.getElementById('menu-form').style.display = 'block';
+        document.getElementById('response-container').style.display = 'none';
+      }
+    </script>
+  </body>
+</html>
