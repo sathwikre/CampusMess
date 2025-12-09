@@ -342,6 +342,27 @@ router.post('/report-issue', async (req, res) => {
     // Log the issue on the server console
     console.log("NEW ISSUE REPORT:", { name, email, hostel, type, message });
 
+    // Send email notification
+    const mailOptions = {
+      from: process.env.MAIL_USER,
+      to: process.env.MAIL_USER, // Send to admin email
+      subject: `New Issue Report: ${type}`,
+      html: `
+        <h2>New Issue Report</h2>
+        <p><strong>Name:</strong> ${name || 'Not provided'}</p>
+        <p><strong>Email:</strong> ${email || 'Not provided'}</p>
+        <p><strong>Hostel:</strong> ${hostel || 'Not provided'}</p>
+        <p><strong>Type:</strong> ${type || 'Not provided'}</p>
+        <p><strong>Message:</strong></p>
+        <p>${message}</p>
+        <hr>
+        <p><em>This is an automated message from the Campus Mess system.</em></p>
+      `
+    };
+
+    await sendEmail(mailOptions);
+    console.log("Issue report email sent successfully");
+
     // Always return success for valid input
     res.json({ success: true });
   } catch (error) {

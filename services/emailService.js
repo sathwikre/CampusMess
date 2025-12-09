@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-
 // User must generate Gmail App Password:
 // 1. Go to Google Account settings
 // 2. Enable 2-factor authentication
@@ -24,7 +23,8 @@ const verifyTransporter = async () => {
     await transporter.verify();
     console.log('Email transporter ready');
   } catch (error) {
-    console.error('Email transporter verification failed:', error);
+    console.error('Email transporter verification failed:', error.message);
+    console.error('Full error details:', error);
   }
 };
 
