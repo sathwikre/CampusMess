@@ -1,8 +1,13 @@
-require('dotenv').config();
+const mongoose = require('mongoose');
+
+// Load .env only during local development (do not override production env vars)
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const mongoose = require('mongoose');
 const menuRoutes = require('./routes/menuRoutes');
 const { verifyTransporter } = require('./services/emailService');
 
@@ -27,23 +32,23 @@ app.get('/ping', (req, res) => {
 // Menu API routes
 app.use('/api', menuRoutes);
 
-// MongoDB connection
-const DB_URI = process.env.DB_URI;
-if (DB_URI) {
-  mongoose.connect(DB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+const mongoUri = process.env.MONGODB_URI;
 
-  mongoose.connection.on('error', err => {
-    console.error('MongoDB connection error:', err);
-  });
-} else {
-  console.warn('DB_URI not set; skipping MongoDB connection');
+if (!mongoUri) {
+  console.error("ERROR: MONGODB_URI is not set in environment variables.");
 }
 
+mongoose.set('strictQuery', false);
+
+mongoose.connect(mongoUri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000
+})
+.then(() => console.log("MongoDB connected."))
+.catch(err => console.error("MongoDB connection error:", err));
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
-  console.log('Verifying email transporter...');
-  await verifyTransporter();
 });

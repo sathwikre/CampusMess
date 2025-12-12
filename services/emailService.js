@@ -17,14 +17,14 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Verify transporter on startup
+// Verify transporter on startup (non-fatal)
 const verifyTransporter = async () => {
   try {
     await transporter.verify();
-    console.log('Email transporter ready');
+    console.log('Email transporter verified');
   } catch (error) {
-    console.error('Email transporter verification failed:', error.message);
-    console.error('Full error details:', error);
+    console.warn('Email transporter verification failed (continuing):', error.message || error);
+    // Do not throw — allow server to continue; individual send attempts will reveal errors
   }
 };
 
