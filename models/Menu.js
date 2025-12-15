@@ -39,6 +39,11 @@ const menuSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  day: {
+    type: String,
+    enum: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    required: true,
+  },
   items: [itemSchema],
   status: {
     type: String,

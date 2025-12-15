@@ -14,6 +14,8 @@ async function loadTodayMenus() {
     const result = await response.json();
     if (result.success) {
       menusToday = result.data || [];
+    } else if (result.message === "No menu found") {
+      menusToday = [];
     } else {
       console.error('Failed to load menus:', result.message);
       menusToday = [];
@@ -55,13 +57,12 @@ function renderMeals() {
       section.classList.add('expanded');
       mealContent.innerHTML = '';
 
-      if (mealMenu && mealMenu.items && mealMenu.items.length > 0) {
+      if (mealMenu && mealMenu.items && Array.isArray(mealMenu.items) && mealMenu.items.length > 0) {
         // Show items list
         const itemsList = document.createElement('ul');
         itemsList.className = 'items-list';
 
-        if (mealMenu.items && mealMenu.items.length > 0) {
-          mealMenu.items.forEach((item, itemIndex) => {
+        mealMenu.items.forEach((item, itemIndex) => {
             const li = document.createElement('li');
             li.className = 'item-entry';
             li.style.setProperty('--item-index', itemIndex);
@@ -72,7 +73,7 @@ function renderMeals() {
             textDiv.className = 'item-text';
             textDiv.innerHTML = `
               <span class="item-bullet">•</span>
-              <span class="item-name">${item.text}</span>
+              <span class="item-name">${item.text || 'Unknown item'}</span>
             `;
             li.appendChild(textDiv);
 
@@ -120,7 +121,7 @@ function renderMeals() {
               const img = document.createElement('img');
               img.className = 'item-image';
               img.src = imagePath;
-              img.alt = item.text;
+              img.alt = item.text || 'Unknown item';
               img.loading = 'lazy';
               imgContainer.appendChild(img);
 
@@ -129,7 +130,7 @@ function renderMeals() {
                 const modal = document.createElement('div');
                 modal.className = 'image-modal';
                 modal.innerHTML = '<div class="modal-content">' +
-                  '<img src="' + imagePath + '" alt="' + item.text + '" />' +
+                  '<img src="' + imagePath + '" alt="' + (item.text || 'Unknown item') + '" />' +
                   '<button class="modal-close">' +
                   '<i class="fas fa-times"></i>' +
                   '</button>' +
@@ -149,13 +150,12 @@ function renderMeals() {
 
             itemsList.appendChild(li);
           });
-          mealContent.appendChild(itemsList);
-        }
+        mealContent.appendChild(itemsList);
       } else {
-        // Show "Not updated"
+        // Show "Menu for today has not been added yet"
         const noItems = document.createElement('p');
         noItems.className = 'no-items';
-        noItems.textContent = 'Not updated';
+        noItems.textContent = 'Menu for today has not been added yet';
         mealContent.appendChild(noItems);
       }
 
