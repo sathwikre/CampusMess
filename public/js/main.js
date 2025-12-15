@@ -187,7 +187,153 @@ function init() {
     .onclick = closeAddItemForm;
 }
 
-window.addEventListener('DOMContentLoaded', init);
+// ================= MODAL MANAGEMENT =================
+function openModal(modalId) {
+  document.getElementById(modalId).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+  document.body.style.overflow = 'auto';
+  document.documentElement.style.overflow = 'auto';
+}
+
+// Specific modal functions
+function openNotificationsModal() {
+  closeHamburgerMenu();
+  loadNotifications();
+  openModal('notifications-modal');
+}
+
+function closeNotificationsModal() {
+  closeModal('notifications-modal');
+}
+
+function openContributorsModal() {
+  closeHamburgerMenu();
+  openModal('contributors-modal');
+}
+
+function closeContributorsModal() {
+  closeModal('contributors-modal');
+}
+
+function openReportIssueModal() {
+  closeHamburgerMenu();
+  openModal('report-issue-modal');
+}
+
+function closeReportIssueModal() {
+  closeModal('report-issue-modal');
+}
+
+function contributeToProject() {
+  closeHamburgerMenu();
+  window.open('https://github.com/sathwikre/CampusMess', '_blank');
+}
+
+// ================= HAMBURGER MENU =================
+function toggleHamburgerMenu(event) {
+  event.stopPropagation();
+  const dropdown = document.getElementById('hamburger-dropdown');
+  const isVisible = dropdown.style.display === 'block';
+  dropdown.style.display = isVisible ? 'none' : 'block';
+}
+
+function closeHamburgerMenu() {
+  const dropdown = document.getElementById('hamburger-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+// Initialize hamburger menu functionality
+function initHamburgerMenu() {
+  const hamburgerMenu = document.getElementById('hamburger-menu');
+  const dropdown = document.getElementById('hamburger-dropdown');
+  
+  if (!hamburgerMenu || !dropdown) return;
+  
+  // Toggle dropdown on hamburger click
+  hamburgerMenu.addEventListener('click', toggleHamburgerMenu);
+  
+  // Prevent dropdown from closing when clicking inside it
+  dropdown.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+  
+  // Setup dropdown item click handlers
+  const menuHandlers = {
+    'contributors-option': openContributorsModal,
+    'report-issue-option': openReportIssueModal,
+    'notifications-option': openNotificationsModal,
+    'contribute-option': contributeToProject
+  };
+  
+  Object.entries(menuHandlers).forEach(([id, handler]) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handler();
+      });
+    }
+  });
+  
+  // Setup modal close buttons
+  const closeButtons = {
+    'close-contributors': closeContributorsModal,
+    'close-notifications': closeNotificationsModal,
+    'cancel-report': closeReportIssueModal
+  };
+  
+  Object.entries(closeButtons).forEach(([id, handler]) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.onclick = (e) => {
+        e.stopPropagation();
+        handler();
+      };
+    }
+  });
+  
+  // Close modals when clicking outside content
+  const modals = ['contributors-modal', 'report-issue-modal', 'notifications-modal'];
+  modals.forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          closeModal(modalId);
+        }
+      };
+    }
+  });
+  
+  // Global click handler for hamburger menu
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('hamburger-menu');
+    const dropdown = document.getElementById('hamburger-dropdown');
+    const isModalOpen = Array.from(document.querySelectorAll('.modal, .overlay'))
+      .some(el => window.getComputedStyle(el).display !== 'none');
+    
+    if (!isModalOpen && !menu.contains(e.target) && !(dropdown && dropdown.contains(e.target))) {
+      closeHamburgerMenu();
+    }
+  });
+}
+
+// Initialize the app when DOM is loaded
+window.addEventListener('DOMContentLoaded', () => {
+  init();
+  initHamburgerMenu();
+  
+  // Ensure all modals are hidden on initial load
+  ['contributors-modal', 'report-issue-modal', 'notifications-modal'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
+  });
+});
 
 // ================= TOAST =================
 function showToast(msg, type = 'success') {

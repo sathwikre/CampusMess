@@ -142,28 +142,40 @@
       </div>
 
       <!-- Contributors Modal -->
-      <div id="contributors-modal" class="contributors-overlay" style="display: none;">
-        <div class="contributors-modal">
-          <h3>Contributors</h3>
-          <div class="contributors-list">
-            <div class="contributor-card">
-              <div class="header-avatar">S</div>
-              <div class="contributor-info">
-                <h4>Suram Sathwik Reddy</h4>
-                <p>Creator & Developer</p>
-                <small>Campus Mess System</small>
-              </div>
+     <!-- Contributors Modal -->
+<div id="contributors-modal" class="modal-overlay" style="display: none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Our Team</h3>
+      <button class="close-modal" id="close-contributors">&times;</button>
+    </div>
+    <div class="modal-content">
+      <div class="contributors-grid">
+        <div class="contributor-card">
+          <div class="contributor-avatar">S</div>
+          <div class="contributor-details">
+            <h4>Suram Sathwik Reddy</h4>
+            <p class="contributor-role">Creator & Lead Developer</p>
+            <div class="contributor-links">
+              <a href="https://github.com/sathwikre" target="_blank" class="social-link" title="GitHub">
+                <i class="fab fa-github"></i>
+              </a>
+              <a href="https://linkedin.com/in/sathwikre" target="_blank" class="social-link" title="LinkedIn">
+                <i class="fab fa-linkedin"></i>
+              </a>
             </div>
           </div>
-          <button id="close-contributors">Close</button>
         </div>
       </div>
-
+    </div>
+  </div>
+</div>
       <!-- Report Issue Modal -->
-      <div id="report-issue-modal" class="report-issue-overlay" style="display: none;">
-        <div class="report-issue-modal">
+      <div id="report-issue-modal" class="modal-overlay" style="display: none;">
+        <div class="modal">
           <div class="modal-header">
             <h3>Report Issue</h3>
+            <button class="close-modal" id="close-report-issue">&times;</button>
           </div>
           <div class="modal-content">
             <form id="report-issue-form">
@@ -201,21 +213,29 @@
               </div>
               <div id="report-status" class="report-status" style="display: none;"></div>
             </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" id="cancel-report">Cancel</button>
-            <button type="submit" id="submit-report" form="report-issue-form">Submit Issue</button>
+            <div class="form-buttons">
+              <button type="button" id="cancel-report" class="btn-cancel">Cancel</button>
+              <button type="submit" class="btn-submit">Submit</button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Notifications Modal -->
-      <div id="notifications-modal" class="notifications-overlay" style="display: none;">
-        <div class="notifications-modal">
-          <h3>Campus Notifications</h3>
-          <div class="notifications-list" id="notifications-list">
-            <!-- Notifications will be loaded here -->
+      <div id="notifications-modal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>Campus Notifications</h3>
+            <button class="close-modal" id="close-notifications">&times;</button>
           </div>
+          <div class="modal-content">
+            <div class="notifications-list" id="notifications-list">
+              <!-- Notifications will be loaded here -->
+            </div>
+            <div class="notification-form">
+              <textarea id="notification-message" placeholder="Write a notification..." rows="3"></textarea>
+              <button type="button" id="post-notification" class="btn-post-notification">Post</button>
+            </div>
           <div class="notification-form">
             <textarea id="notification-message" placeholder="Write a notification..." rows="3"></textarea>
             <button type="button" id="post-notification" class="btn-post-notification">Post</button>
