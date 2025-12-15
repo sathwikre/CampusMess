@@ -1,5 +1,5 @@
 // ================= STATE =================
-let currentHostel = 'Ellora';
+let currentHostel = 'ellora'; // Store in lowercase for consistency
 let openMeal = null; // breakfast | lunch | dinner
 let currentMealForForm = null;
 let menusToday = [];
@@ -33,7 +33,7 @@ function initUserName() {
 // ================= RENDER =================
 function renderMeals() {
   document.querySelectorAll('.meal-section').forEach(section => {
-    const mealType = section.dataset.meal.toLowerCase(); // 🔥 normalize
+    const mealType = section.dataset.meal.toLowerCase();
     const content = section.querySelector('.meal-content');
     content.innerHTML = '';
 
@@ -45,9 +45,10 @@ function renderMeals() {
 
     section.classList.add('expanded');
 
-    const menu = menusToday.find(m =>
-      m.hostel?.toLowerCase() === currentHostel.toLowerCase() &&
-      m.mealType?.toLowerCase() === mealType
+    const menu = menusToday.find(m => 
+      m.hostel && m.mealType && 
+      m.hostel.toLowerCase() === currentHostel &&
+      m.mealType.toLowerCase() === mealType
     );
 
     if (!menu || !Array.isArray(menu.items) || menu.items.length === 0) {
@@ -143,10 +144,32 @@ async function submitNewItem(e) {
   }
 }
 
+// ================= HOSTEL SWITCHING =================
+function switchHostel(hostel) {
+  currentHostel = hostel.toLowerCase();
+  openMeal = null;
+
+  // ✅ FIX: update active button UI
+  document.querySelectorAll('.hostel-btn')
+    .forEach(b => b.classList.remove('active'));
+
+  const activeBtn = document.querySelector(
+    `.hostel-btn[data-hostel="${hostel}"]`
+  );
+  if (activeBtn) activeBtn.classList.add('active');
+
+  loadTodayMenus().then(renderMeals);
+}
+
 // ================= INIT =================
 function init() {
   initUserName();
   loadTodayMenus().then(renderMeals);
+  
+  // Set up hostel buttons
+  document.querySelectorAll('.hostel-btn').forEach(btn => {
+    btn.onclick = () => switchHostel(btn.dataset.hostel);
+  });
 
   document.querySelectorAll('.meal-section').forEach(section => {
     section.onclick = async () => {
