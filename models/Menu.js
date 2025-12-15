@@ -6,17 +6,12 @@ const itemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  imagePath: {
-    type: String,
-  },
-  thumbPath: {
-    type: String,
-  },
-  createdBy: {
-    type: String,
-  },
+  imagePath: String,
+  thumbPath: String,
+  createdBy: String,
   createdAt: {
-    type: mongoose.Schema.Types.Mixed,
+    type: Date,
+    default: Date.now,
   },
   ownerToken: {
     type: String,
@@ -27,13 +22,15 @@ const itemSchema = new mongoose.Schema({
 const menuSchema = new mongoose.Schema({
   hostel: {
     type: String,
-    enum: ['Ellora', 'Hampi', 'Shilpa', 'Ajantha'],
     required: true,
+    lowercase: true,                 // 🔥 AUTO NORMALIZE
+    enum: ['ellora', 'hampi', 'shilpa', 'ajantha'],
   },
   mealType: {
     type: String,
-    enum: ['breakfast', 'lunch', 'dinner'],
     required: true,
+    lowercase: true,
+    enum: ['breakfast', 'lunch', 'dinner'],
   },
   menuDate: {
     type: Date,
@@ -41,8 +38,8 @@ const menuSchema = new mongoose.Schema({
   },
   day: {
     type: String,
-    enum: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     required: true,
+    enum: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   },
   items: [itemSchema],
   status: {
@@ -54,7 +51,10 @@ const menuSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Unique index to prevent duplicate menu entries for same hostel/meal/date
-menuSchema.index({ hostel: 1, mealType: 1, menuDate: 1 }, { unique: true });
+// Prevent duplicate menus for same hostel + meal + date
+menuSchema.index(
+  { hostel: 1, mealType: 1, menuDate: 1 },
+  { unique: true }
+);
 
 module.exports = mongoose.model('Menu', menuSchema);
