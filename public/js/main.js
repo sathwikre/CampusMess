@@ -33,28 +33,23 @@ function initUserName() {
 // ================= RENDER =================
 function renderMeals() {
   document.querySelectorAll('.meal-section').forEach(section => {
-    const mealType = section.dataset.meal; // breakfast | lunch | dinner
+    const mealType = section.dataset.meal.toLowerCase(); // 🔥 normalize
     const content = section.querySelector('.meal-content');
-
-    // Reset UI
     content.innerHTML = '';
-    section.classList.remove('expanded');
 
-    // If this meal is not open
     if (openMeal !== mealType) {
       content.innerHTML = '<p class="placeholder">Tap to view items</p>';
+      section.classList.remove('expanded');
       return;
     }
 
     section.classList.add('expanded');
 
-    // 🔴 IMPORTANT FIX: normalize hostel & mealType
     const menu = menusToday.find(m =>
       m.hostel?.toLowerCase() === currentHostel.toLowerCase() &&
-      m.mealType?.toLowerCase() === mealType.toLowerCase()
+      m.mealType?.toLowerCase() === mealType
     );
 
-    // No menu or no items
     if (!menu || !Array.isArray(menu.items) || menu.items.length === 0) {
       content.innerHTML = '<p class="no-items">Menu not added yet</p>';
     } else {
@@ -66,13 +61,9 @@ function renderMeals() {
         li.className = 'item-entry';
 
         li.innerHTML = `
-          <div class="item-text">• ${item.text || 'Unknown item'}</div>
-          ${item.createdBy ? `<div class="item-by">by ${item.createdBy}</div>` : ''}
-          ${
-            item.imagePath
-              ? `<img src="${item.imagePath}" class="item-image" loading="lazy">`
-              : ''
-          }
+          <div class="item-text">• ${item.text || 'Unnamed item'}</div>
+          ${item.createdBy ? `<div class="item-by">${item.createdBy}</div>` : ''}
+          ${item.imagePath ? `<img src="${item.imagePath}" class="item-image">` : ''}
         `;
 
         ul.appendChild(li);
@@ -81,15 +72,13 @@ function renderMeals() {
       content.appendChild(ul);
     }
 
-    // Add Item button
     const addBtn = document.createElement('button');
     addBtn.className = 'btn-add-item';
     addBtn.textContent = 'Add Item';
-    addBtn.addEventListener('click', e => {
+    addBtn.onclick = e => {
       e.stopPropagation();
       openAddItemForm(mealType);
-    });
-
+    };
     content.appendChild(addBtn);
   });
 }
