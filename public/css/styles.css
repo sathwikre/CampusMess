@@ -1786,6 +1786,31 @@ body {
   border: 0;
 }
 
+/* Modal and Overlay States */
+.modal-visible {
+  display: flex !important;
+}
+
+.body-no-scroll {
+  overflow: hidden !important;
+}
+
+.body-no-scroll-html {
+  overflow: hidden !important;
+}
+
+/* Toast States */
+.toast-visible {
+  display: flex !important;
+  opacity: 1 !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+
+/* Dropdown States */
+.dropdown-visible {
+  display: block !important;
+}
+
 /* Theme Toggle (Optional - can be added later) */
 .theme-toggle {
   position: fixed;
@@ -2273,6 +2298,35 @@ body {
     transform: scale(1) translateY(0);
   }
 }
+/* Add Item Modal Overlay */
+#add-item-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+#add-item-overlay.active {
+  display: flex;
+}
+
+#add-item-form {
+  background: #ffffff;
+  width: 92%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
 /* Modal Overlay */
 .modal-overlay {
   display: none;
