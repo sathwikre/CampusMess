@@ -421,6 +421,7 @@ body {
 }
 
 .item-entry {
+  position: relative;
   background: rgba(103, 127, 234, 0.05);
   border-radius: var(--radius-md);
   padding: var(--space-sm);

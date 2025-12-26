@@ -61,11 +61,58 @@ function renderMeals() {
         const li = document.createElement('li');
         li.className = 'item-entry';
 
+        // Check if current user created this item
+        const isOwner = item.createdBy && item.createdBy === currentUserName;
+        
         li.innerHTML = `
           <div class="item-text">• ${item.text || 'Unnamed item'}</div>
           ${item.createdBy ? `<div class="item-by">${item.createdBy}</div>` : ''}
           ${item.imagePath ? `<img src="${item.imagePath}" class="item-image">` : ''}
+          ${isOwner ? `<button class="item-delete-btn" data-item-id="${item._id}" title="Delete this item">×</button>` : ''}
         `;
+
+        // Add delete handler if this is the owner's item
+        if (isOwner) {
+          const deleteBtn = li.querySelector('.item-delete-btn');
+          if (deleteBtn) {
+            // Get the actual item ID - handle both ObjectId and string
+            let itemId;
+            if (item._id) {
+              if (typeof item._id === 'string') {
+                itemId = item._id;
+              } else if (item._id.toString) {
+                itemId = item._id.toString();
+              } else if (item._id.$oid) {
+                itemId = item._id.$oid; // MongoDB extended JSON format
+              } else {
+                itemId = String(item._id);
+              }
+            }
+            console.log('🔘 Delete button created for item:', { 
+              itemId, 
+              itemIdType: typeof itemId,
+              rawId: item._id,
+              rawIdType: typeof item._id,
+              item 
+            });
+            
+            deleteBtn.onclick = async (e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              console.log('🔘 Delete button clicked for item:', itemId, 'Type:', typeof itemId);
+              if (confirm('Are you sure you want to delete this item?')) {
+                if (!itemId) {
+                  console.error('❌ No item ID found!');
+                  showToast('Error: Item ID not found', 'error');
+                  return;
+                }
+                await deleteMenuItem(itemId);
+              }
+            };
+          } else {
+            console.error('❌ Delete button not found in DOM');
+          }
+        }
 
         ul.appendChild(li);
       });
@@ -308,6 +355,47 @@ if (!res.ok || !result.success) {
   } catch (err) {
     console.error(err);
     showToast(err.message, 'error');
+  }
+}
+
+// ================= DELETE MENU ITEM =================
+async function deleteMenuItem(itemId) {
+  try {
+    console.log('🗑️ Deleting item:', itemId, 'by user:', currentUserName);
+    
+    const res = await fetch(`/api/menus/${itemId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ createdBy: currentUserName }),
+    });
+
+    console.log('📥 Delete response status:', res.status);
+
+    let result;
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      result = await res.json();
+    } else {
+      const text = await res.text();
+      console.error('❌ Response is not JSON:', text);
+      throw new Error(`Server error (${res.status}): ${text.substring(0, 100)}`);
+    }
+
+    console.log('📥 Delete response:', result);
+
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || 'Failed to delete item');
+    }
+
+    // Reload menus and re-render
+    await loadTodayMenus();
+    renderMeals();
+    showToast('Item deleted successfully', 'success');
+  } catch (err) {
+    console.error('❌ Error deleting item:', err);
+    showToast(err.message || 'Failed to delete item', 'error');
   }
 }
 
