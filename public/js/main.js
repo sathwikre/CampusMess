@@ -84,15 +84,170 @@ function renderMeals() {
   });
 }
 
+// ================= CAMERA FUNCTIONS =================
+async function startCamera() {
+  try {
+    // Check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast('Camera is not supported in this browser.', 'error');
+      return;
+    }
+
+    // Stop any existing stream first
+    stopCamera();
+
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: 'environment', // Use back camera on mobile devices
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      } 
+    });
+    
+    currentStream = stream;
+    const video = document.getElementById('camera-preview');
+    if (!video) return;
+    
+    video.srcObject = stream;
+    
+    // Show camera section, hide file input preview
+    document.getElementById('camera-section').style.display = 'block';
+    document.getElementById('file-preview').style.display = 'none';
+    document.getElementById('preview-section').style.display = 'none';
+    
+    // Clear file input
+    document.getElementById('item-photo').value = '';
+  } catch (err) {
+    console.error('Error accessing camera:', err);
+    let errorMsg = 'Could not access camera.';
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      errorMsg = 'Camera permission denied. Please allow camera access.';
+    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      errorMsg = 'No camera found on this device.';
+    }
+    showToast(errorMsg, 'error');
+  }
+}
+
+function stopCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+    currentStream = null;
+  }
+  
+  const video = document.getElementById('camera-preview');
+  if (video) {
+    video.srcObject = null;
+  }
+}
+
+function captureImage() {
+  const video = document.getElementById('camera-preview');
+  const canvas = document.getElementById('capture-canvas');
+  const previewSection = document.getElementById('preview-section');
+  const capturedPreview = document.getElementById('captured-preview');
+  
+  if (!video || !canvas || !previewSection || !capturedPreview) return;
+  
+  // Check if video is ready
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+    showToast('Camera is not ready. Please wait a moment.', 'error');
+    return;
+  }
+  
+  // Set canvas dimensions to match video
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  
+  // Draw video frame to canvas
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  
+  // Convert canvas to blob
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      showToast('Failed to capture image. Please try again.', 'error');
+      return;
+    }
+    
+    capturedBlob = blob;
+    
+    // Create object URL for preview
+    const imageUrl = URL.createObjectURL(blob);
+    capturedPreview.src = imageUrl;
+    
+    // Show preview section, hide video
+    previewSection.style.display = 'block';
+    video.style.display = 'none';
+    
+    // Convert blob to File and set it to the file input
+    const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    document.getElementById('item-photo').files = dataTransfer.files;
+    
+    // Stop camera stream
+    stopCamera();
+  }, 'image/jpeg', 0.9);
+}
+
+function retakePhoto() {
+  // Reset preview
+  const previewSection = document.getElementById('preview-section');
+  const capturedPreview = document.getElementById('captured-preview');
+  const video = document.getElementById('camera-preview');
+  
+  if (capturedPreview && capturedPreview.src) {
+    const imageUrl = capturedPreview.src;
+    if (imageUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(imageUrl);
+    }
+    capturedPreview.src = '';
+  }
+  
+  if (previewSection) previewSection.style.display = 'none';
+  if (video) video.style.display = 'block';
+  
+  // Clear captured blob and file input
+  capturedBlob = null;
+  const photoInput = document.getElementById('item-photo');
+  if (photoInput) photoInput.value = '';
+  
+  // Restart camera
+  startCamera();
+}
+
 // ================= ADD ITEM FORM =================
 function openAddItemForm(mealType) {
   currentMealForForm = mealType;
   document.getElementById('add-item-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   document.getElementById('add-item-form').reset();
+  
+  // Reset camera state
+  stopCamera();
+  capturedBlob = null;
+  document.getElementById('camera-section').style.display = 'none';
+  document.getElementById('file-preview').style.display = 'none';
+  document.getElementById('preview-section').style.display = 'none';
+  
+  // Reset video display
+  const video = document.getElementById('camera-preview');
+  if (video) {
+    video.style.display = 'block';
+  }
 }
 
 function closeAddItemForm() {
+  stopCamera();
+  capturedBlob = null;
+  
+  // Clean up blob URLs
+  const capturedPreview = document.getElementById('captured-preview');
+  if (capturedPreview && capturedPreview.src.startsWith('blob:')) {
+    URL.revokeObjectURL(capturedPreview.src);
+  }
+  
   document.getElementById('add-item-overlay').style.display = 'none';
   document.body.style.overflow = 'auto';
   currentMealForForm = null;
@@ -126,12 +281,24 @@ async function submitNewItem(e) {
 
   try {
     const res = await fetch('/api/menus', {
-      method: 'POST',
-      body: formData
-    });
+  method: 'POST',
+  body: formData
+});
 
-    const result = await res.json();
-    if (!result.success) throw new Error(result.error);
+const text = await res.text();
+
+let result;
+try {
+  result = JSON.parse(text);
+} catch {
+  throw new Error("Server error (response is not JSON)");
+}
+
+if (!res.ok || !result.success) {
+  throw new Error(result?.error || "Failed to add item");
+}
+
+
 
     await loadTodayMenus();
     openMeal = currentMealForForm;
@@ -185,6 +352,92 @@ function init() {
 
   document.getElementById('cancel-add')
     .onclick = closeAddItemForm;
+  
+  // File upload button - show coming soon
+  const fileUploadBtn = document.getElementById('file-upload-btn');
+  if (fileUploadBtn) {
+    fileUploadBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openComingSoonModal();
+    });
+  }
+  
+  // Camera button event listeners - show coming soon
+  const useCameraBtn = document.getElementById('use-camera');
+  const captureBtn = document.getElementById('capture-btn');
+  const retakeBtn = document.getElementById('retake-btn');
+  
+  if (useCameraBtn) {
+    useCameraBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openComingSoonModal();
+    });
+  }
+  
+  if (captureBtn) {
+    captureBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openComingSoonModal();
+    });
+  }
+  
+  if (retakeBtn) {
+    retakeBtn.addEventListener('click', retakePhoto);
+  }
+  
+  // Hide file input and prevent direct access
+  const photoInput = document.getElementById('item-photo');
+  if (photoInput) {
+    // Prevent any direct interaction with file input
+    photoInput.style.pointerEvents = 'none';
+    photoInput.disabled = true;
+  }
+  
+  // Close coming soon modal button
+  const closeComingSoonBtn = document.getElementById('close-coming-soon');
+  if (closeComingSoonBtn) {
+    closeComingSoonBtn.addEventListener('click', closeComingSoonModal);
+  }
+  
+  // Close coming soon modal when clicking outside
+  const comingSoonModal = document.getElementById('coming-soon-modal');
+  if (comingSoonModal) {
+    comingSoonModal.addEventListener('click', function(e) {
+      if (e.target === comingSoonModal) {
+        closeComingSoonModal();
+      }
+    });
+  }
+  
+  // Notifications form
+  const sendNotificationForm = document.getElementById('send-notification-form');
+  if (sendNotificationForm) {
+    console.log('✅ Notification form found, attaching event listener');
+    sendNotificationForm.addEventListener('submit', sendNotification);
+  } else {
+    console.error('❌ Notification form not found!');
+  }
+  
+  // Handle delete file button
+  const deleteFileBtn = document.getElementById('delete-file');
+  if (deleteFileBtn) {
+    deleteFileBtn.addEventListener('click', function() {
+      const photoInput = document.getElementById('item-photo');
+      const filePreview = document.getElementById('file-preview');
+      
+      photoInput.value = '';
+      filePreview.style.display = 'none';
+      capturedBlob = null;
+      
+      // Clean up blob URLs
+      const capturedPreview = document.getElementById('captured-preview');
+      if (capturedPreview && capturedPreview.src.startsWith('blob:')) {
+        URL.revokeObjectURL(capturedPreview.src);
+        capturedPreview.src = '';
+      }
+      document.getElementById('preview-section').style.display = 'none';
+    });
+  }
 }
 
 // ================= MODAL MANAGEMENT =================
@@ -198,6 +451,137 @@ function closeModal(modalId) {
   document.getElementById(modalId).style.display = 'none';
   document.body.style.overflow = 'auto';
   document.documentElement.style.overflow = 'auto';
+}
+
+// ================= NOTIFICATIONS =================
+async function loadNotifications() {
+  try {
+    const res = await fetch('/api/notifications', { cache: 'no-store' });
+    const result = await res.json();
+    
+    const notificationsList = document.getElementById('notifications-list');
+    if (!notificationsList) return;
+    
+    if (!result.success || !Array.isArray(result.data) || result.data.length === 0) {
+      notificationsList.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+          <p style="margin: 0; font-size: 1rem;">No notifications yet. Be the first to send a message!</p>
+        </div>
+      `;
+      return;
+    }
+    
+    notificationsList.innerHTML = result.data.map((notif, index) => {
+      const date = new Date(notif.createdAt);
+      const timeStr = date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      return `
+        <div class="notification-item" style="animation-delay: ${index * 0.1}s">
+          <div class="notification-content">${escapeHtml(notif.message)}</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #64748b;">
+            <span style="font-weight: 600; color: #667eea;">${escapeHtml(notif.createdBy)}</span>
+            <span>${timeStr}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load notifications:', err);
+    const notificationsList = document.getElementById('notifications-list');
+    if (notificationsList) {
+      notificationsList.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #ef4444;">
+          <p style="margin: 0;">Failed to load notifications. Please try again.</p>
+        </div>
+      `;
+    }
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+async function sendNotification(e) {
+  e.preventDefault();
+  console.log('📝 sendNotification called');
+  
+  const messageInput = document.getElementById('notification-message');
+  const senderInput = document.getElementById('notification-sender');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  
+  if (!messageInput || !submitBtn) {
+    console.error('❌ Form elements not found');
+    showToast('Form error. Please refresh the page.', 'error');
+    return;
+  }
+  
+  const message = messageInput.value.trim();
+  const createdBy = senderInput ? senderInput.value.trim() : '';
+  const finalSender = createdBy || currentUserName || 'Anonymous';
+  
+  if (!message) {
+    showToast('Please enter a message', 'error');
+    return;
+  }
+  
+  // Disable button
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending...';
+  
+  try {
+    console.log('📤 Sending notification:', { message, createdBy: finalSender });
+    
+    const res = await fetch('/api/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message, createdBy: finalSender }),
+    });
+    
+    console.log('📥 Response status:', res.status);
+    
+    const contentType = res.headers.get('content-type');
+    let result;
+    
+    if (contentType && contentType.includes('application/json')) {
+      result = await res.json();
+    } else {
+      const text = await res.text();
+      console.error('❌ Response is not JSON:', text);
+      throw new Error(`Server error (${res.status}): ${text.substring(0, 100)}`);
+    }
+    
+    console.log('📥 Response data:', result);
+    
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || 'Failed to send notification');
+    }
+    
+    // Clear form
+    messageInput.value = '';
+    if (senderInput) senderInput.value = '';
+    
+    // Reload notifications
+    await loadNotifications();
+    
+    showToast('Message sent successfully!', 'success');
+  } catch (err) {
+    console.error('❌ Error sending notification:', err);
+    showToast(err.message || 'Failed to send message', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
 }
 
 // Specific modal functions
@@ -232,6 +616,14 @@ function closeReportIssueModal() {
 function contributeToProject() {
   closeHamburgerMenu();
   window.open('https://github.com/sathwikre/CampusMess', '_blank');
+}
+
+function openComingSoonModal() {
+  openModal('coming-soon-modal');
+}
+
+function closeComingSoonModal() {
+  closeModal('coming-soon-modal');
 }
 
 // ================= HAMBURGER MENU =================
@@ -284,6 +676,7 @@ function initHamburgerMenu() {
   const closeButtons = {
     'close-contributors': closeContributorsModal,
     'close-notifications': closeNotificationsModal,
+    'close-report-issue': closeReportIssueModal,
     'cancel-report': closeReportIssueModal
   };
   
@@ -329,7 +722,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initHamburgerMenu();
   
   // Ensure all modals are hidden on initial load
-  ['contributors-modal', 'report-issue-modal', 'notifications-modal'].forEach(id => {
+  ['contributors-modal', 'report-issue-modal', 'notifications-modal', 'coming-soon-modal'].forEach(id => {
     const modal = document.getElementById(id);
     if (modal) modal.style.display = 'none';
   });

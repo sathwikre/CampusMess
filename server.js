@@ -18,6 +18,7 @@ const nodemailer = require("nodemailer");
 
 const menuRoutes = require("./routes/menuRoutes");
 const Menu = require("./models/Menu"); // ✅ IMPORTANT
+const Notification = require("./models/Notification");
 
 ///////////////////////////////////////////////////////////////
 // APP SETUP
@@ -134,8 +135,90 @@ app.post("/api/report-issue", async (req, res) => {
   }
 });
 
+/**
+ * GET ALL NOTIFICATIONS
+ */
+app.get("/api/notifications", async (req, res) => {
+  try {
+    const notifications = await Notification.find()
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    res.json({
+      success: true,
+      data: notifications,
+    });
+  } catch (err) {
+    console.error("❌ Error loading notifications:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to load notifications",
+    });
+  }
+});
+
+/**
+ * CREATE NOTIFICATION
+ */
+app.post("/api/notifications", async (req, res) => {
+  console.log("📝 POST /api/notifications called");
+  try {
+    const { message, createdBy } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: "Message is required",
+      });
+    }
+
+    const notification = new Notification({
+      message: message.trim(),
+      createdBy: createdBy?.trim() || "Anonymous",
+    });
+
+    await notification.save();
+
+    res.json({
+      success: true,
+      data: notification,
+    });
+  } catch (err) {
+    console.error("❌ Error creating notification:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to create notification",
+    });
+  }
+});
+
 ///////////////////////////////////////////////////////////////
-// FRONTEND FALLBACK (VERY IMPORTANT)
+// GLOBAL ERROR HANDLER (MUST BE BEFORE API FALLBACK)
+///////////////////////////////////////////////////////////////
+app.use("/api", (err, req, res, next) => {
+  console.error("❌ Global API error handler:", err);
+  console.error("❌ Error stack:", err.stack);
+  
+  // Ensure JSON response
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || "Internal server error",
+    ...(process.env.NODE_ENV !== "production" && { stack: err.stack })
+  });
+});
+
+///////////////////////////////////////////////////////////////
+// API FALLBACK (JSON ONLY)
+///////////////////////////////////////////////////////////////
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "API route not found",
+  });
+});
+
+///////////////////////////////////////////////////////////////
+// FRONTEND FALLBACK (SPA)
 ///////////////////////////////////////////////////////////////
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
