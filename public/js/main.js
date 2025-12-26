@@ -506,6 +506,25 @@ function init() {
     console.error('❌ Notification form not found!');
   }
   
+  // Report issue form
+  const reportIssueForm = document.getElementById('report-issue-form');
+  if (reportIssueForm) {
+    reportIssueForm.addEventListener('submit', submitReportIssue);
+  }
+  
+  // Report issue submit button (outside form, so we need a separate handler)
+  const reportSubmitBtn = document.querySelector('#report-issue-modal .btn-submit');
+  if (reportSubmitBtn) {
+    reportSubmitBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Trigger form submission
+      if (reportIssueForm) {
+        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+        reportIssueForm.dispatchEvent(submitEvent);
+      }
+    });
+  }
+  
   // Handle delete file button
   const deleteFileBtn = document.getElementById('delete-file');
   if (deleteFileBtn) {
@@ -699,6 +718,102 @@ function openReportIssueModal() {
 
 function closeReportIssueModal() {
   closeModal('report-issue-modal');
+}
+
+// ================= REPORT ISSUE =================
+async function submitReportIssue(e) {
+  e.preventDefault();
+  
+  const nameInput = document.getElementById('issue-name');
+  const emailInput = document.getElementById('issue-email');
+  const hostelInput = document.getElementById('issue-hostel');
+  const typeInput = document.getElementById('issue-type');
+  const messageInput = document.getElementById('issue-message');
+  const statusDiv = document.getElementById('report-status');
+  const submitBtn = document.querySelector('#report-issue-modal .btn-submit');
+  
+  if (!hostelInput || !typeInput || !messageInput) {
+    showToast('Form error. Please refresh the page.', 'error');
+    return;
+  }
+  
+  const name = nameInput ? nameInput.value.trim() : '';
+  const email = emailInput ? emailInput.value.trim() : '';
+  const hostel = hostelInput.value.trim();
+  const type = typeInput.value.trim();
+  const message = messageInput.value.trim();
+  
+  // Validate required fields
+  if (!hostel || !type || !message) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+  
+  // Disable submit button
+  const originalText = submitBtn ? submitBtn.textContent : 'Submit';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+  }
+  
+  try {
+      const res = await fetch('/api/report-issue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name || currentUserName || 'Anonymous',
+          email,
+          hostel,
+          type,
+          message,
+        }),
+      });
+      
+      const result = await res.json();
+      
+      if (!res.ok || !result.success) {
+        throw new Error('Failed to submit report');
+      }
+      
+      // Show success message
+      if (statusDiv) {
+        statusDiv.textContent = 'Report submitted successfully!';
+        statusDiv.className = 'report-status success';
+        statusDiv.style.display = 'block';
+      }
+      
+      showToast('Report submitted successfully!', 'success');
+      
+      // Clear form
+      if (nameInput) nameInput.value = '';
+      if (emailInput) emailInput.value = '';
+      hostelInput.value = '';
+      typeInput.value = '';
+      messageInput.value = '';
+      
+      // Close modal after a delay
+      setTimeout(() => {
+        closeReportIssueModal();
+        if (statusDiv) {
+          statusDiv.style.display = 'none';
+        }
+      }, 2000);
+    } catch (err) {
+      console.error('Error submitting report:', err);
+      if (statusDiv) {
+        statusDiv.textContent = 'Failed to submit report. Please try again.';
+        statusDiv.className = 'report-status error';
+        statusDiv.style.display = 'block';
+      }
+      showToast(err.message || 'Failed to submit report', 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    }
 }
 
 function contributeToProject() {
