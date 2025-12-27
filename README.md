@@ -146,7 +146,7 @@ The project is cleanly divided into **Frontend, Backend, Database, and Cloud Ser
 - 📱 Mobile & desktop responsive UI
 - 📝 Report Issue functionality
 - 👥 Contributors page
-- 🔔 Notifications (Coming Soon)
+- 🔔 Notifications 
 
 ---
 
