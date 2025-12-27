@@ -30,6 +30,50 @@ function initUserName() {
   }
 }
 
+// ================= UTILITY FUNCTIONS =================
+function formatDateTime(dateString) {
+  if (!dateString) return '';
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    // Get current date for comparison
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const itemDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    // Format time (12-hour format with AM/PM)
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    const timeStr = `${displayHours}:${displayMinutes} ${ampm}`;
+    
+    // Check if it's today
+    if (itemDate.getTime() === today.getTime()) {
+      return `Today, ${timeStr}`;
+    }
+    
+    // Check if it's yesterday
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (itemDate.getTime() === yesterday.getTime()) {
+      return `Yesterday, ${timeStr}`;
+    }
+    
+    // Otherwise show date and time
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = date.getDate();
+    const month = monthNames[date.getMonth()];
+    return `${month} ${day}, ${timeStr}`;
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return '';
+  }
+}
+
 // ================= RENDER =================
 function renderMeals() {
   document.querySelectorAll('.meal-section').forEach(section => {
@@ -64,11 +108,15 @@ function renderMeals() {
         // Check if current user created this item
         const isOwner = item.createdBy && item.createdBy === currentUserName;
         
+        // Format the timestamp if available
+        const timestampHtml = item.createdAt ? `<div class="item-date">${formatDateTime(item.createdAt)}</div>` : '';
+        
         li.innerHTML = `
           <div class="item-text">• ${item.text || 'Unnamed item'}</div>
           ${item.createdBy ? `<div class="item-by">${item.createdBy}</div>` : ''}
           ${item.imagePath ? `<img src="${item.imagePath}" class="item-image">` : ''}
           ${isOwner ? `<button class="item-delete-btn" data-item-id="${item._id}" title="Delete this item">×</button>` : ''}
+          ${timestampHtml}
         `;
 
         // Add delete handler if this is the owner's item

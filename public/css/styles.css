@@ -496,26 +496,21 @@ body {
 }
 
 .item-date {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.625rem;
+  gap: 6px;
+  font-size: 0.75rem;
   font-weight: 400;
   color: var(--text-secondary);
-  opacity: 0.6;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 2px 6px;
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
-  z-index: 10;
+  opacity: 0.8;
+  padding-left: calc(1.5rem + var(--space-sm));
+  margin-top: 4px;
+  align-self: flex-end;
 }
 
 .item-date::before {
-  content: '📅';
-  font-size: 0.5rem;
+  content: '🕒';
+  font-size: 0.7rem;
 }
 
 /* Enhanced Image Container */
