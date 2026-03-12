@@ -38,6 +38,53 @@ const upload = multer({
   }
 });
 
+function normalizeDietPreference(value) {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.toLowerCase().trim().replace(/\s+/g, '-');
+  if (normalized === 'veg' || normalized === 'non-veg') {
+    return normalized;
+  }
+
+  return undefined;
+}
+
+function extractSubmittedItems(body) {
+  if (Array.isArray(body.items)) {
+    return body.items
+      .map((value) => String(value).trim())
+      .filter(Boolean);
+  }
+
+  let rawValues = [];
+
+  if (body.items) {
+    rawValues = [body.items];
+  } else if (body.singleItem) {
+    rawValues = [body.singleItem];
+  } else if (body.dishes) {
+    rawValues = [body.dishes];
+  }
+
+  return rawValues
+    .flatMap((value) => {
+      const text = String(value);
+      if (/\r?\n/.test(text)) {
+        return text.split(/\r?\n/);
+      }
+
+      return text.split(',');
+    })
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function combineSubmittedItems(items) {
+  return items.join('\n');
+}
+
 ///////////////////////////////////////////////////////////////
 // GET TODAY MENUS
 ///////////////////////////////////////////////////////////////
@@ -101,49 +148,56 @@ router.post("/", (req, res, next) => {
   });
 }, async (req, res, next) => {
   try {
-    let { hostel, singleItem, createdBy } = req.body;
+    let { hostel, createdBy } = req.body;
     const mealType = req.body.mealType?.toLowerCase().trim();
+    const submittedItems = extractSubmittedItems(req.body);
+    const dietPreference = normalizeDietPreference(req.body.dietPreference);
 
     // Normalize hostel to match schema enum
-    hostel =
-      hostel?.charAt(0).toUpperCase() +
-      hostel?.slice(1).toLowerCase();
+    hostel = hostel?.toLowerCase().trim();
 
-    if (!hostel || !mealType || !singleItem) {
+    if (!hostel || !mealType || submittedItems.length === 0) {
       return res.status(400).json({
         success: false,
-        error: "hostel, mealType, singleItem required",
+        error: "hostel, mealType, and at least one item are required",
       });
     }
 
     const menuDate = new Date();
     menuDate.setHours(0, 0, 0, 0);
 
+    const day = menuDate.toLocaleDateString("en-US", { weekday: "long" });
     const newItem = {
       _id: new mongoose.Types.ObjectId(),
-      text: singleItem,
+      text: combineSubmittedItems(submittedItems),
       createdBy: createdBy || "Anonymous",
       createdAt: new Date(),
       ownerToken: crypto.randomUUID(),
     };
 
-    // ✅ CLOUDINARY IMAGE URL
     if (req.file) {
-      newItem.imagePath = req.file.path;   // Cloudinary URL
+      newItem.imagePath = req.file.path;
       newItem.thumbPath = req.file.path;
+    }
+
+    const update = {
+      $set: {
+        hostel,
+        mealType,
+        menuDate,
+        day,
+        status: "published",
+      },
+      $push: { items: newItem },
+    };
+
+    if (dietPreference) {
+      update.$set.dietPreference = dietPreference;
     }
 
     const menu = await Menu.findOneAndUpdate(
       { hostel, mealType, menuDate },
-      {
-        $set: {
-          hostel,
-          mealType,
-          menuDate,
-          status: "published",
-        },
-        $addToSet: { items: newItem },
-      },
+      update,
       { upsert: true, new: true, runValidators: true }
     );
 

@@ -401,7 +401,7 @@ body {
   color: var(--text-secondary);
   text-align: center;
   font-weight: 500;
-  padding: var(--space-xl) var(--space-md);
+  padding: var(--space-sm) var(--space-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -418,6 +418,27 @@ body {
 .items-list {
   list-style: none;
   margin-bottom: var(--space-md);
+}
+
+.meal-diet-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.meal-diet-badge.veg {
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+}
+
+.meal-diet-badge.non-veg {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
 }
 
 .item-entry {
@@ -466,6 +487,24 @@ body {
   gap: var(--space-sm);
   font-weight: 500;
   color: var(--text-primary);
+}
+
+.item-text-grouped {
+  display: block;
+}
+
+.item-sublist {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.item-sublist li {
+  margin-bottom: 0.45rem;
+  line-height: 1.5;
+}
+
+.item-sublist li:last-child {
+  margin-bottom: 0;
 }
 
 .item-bullet {

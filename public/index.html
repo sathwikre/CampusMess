@@ -84,7 +84,7 @@
       <footer class="hostel-bar">
         <button class="hostel-btn active" data-hostel="Ellora">Ellora</button>
         <button class="hostel-btn" data-hostel="Hampi">Hampi</button>
-        <button class="hostel-btn" data-hostel="Shilpa">Shilpa</button>
+        <button class="hostel-btn" data-hostel="Shilpa">Shilpa&Amaravathi</button>
         <button class="hostel-btn" data-hostel="Ajantha">Ajantha</button>
       </footer>
 
@@ -94,8 +94,16 @@
           <h3>Add New Item</h3>
           <form id="add-item-form">
             <div class="form-group">
-              <label for="item-name">Item name *</label>
-              <input type="text" id="item-name" placeholder="e.g., Idli" required />
+              <label for="item-diet-type">Veg / Non-Veg</label>
+              <select id="item-diet-type">
+                <option value="">Optional</option>
+                <option value="veg">Veg</option>
+                <option value="non-veg">Non-Veg</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="item-names">Items *</label>
+              <textarea id="item-names" placeholder="Add one item per line or separate with commas.&#10;e.g., Idli&#10;Sambar&#10;Chutney" required></textarea>
             </div>
             <div class="form-group">
               <label for="item-photo">Photo (optional)</label>

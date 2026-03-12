@@ -9,6 +9,53 @@ let currentUserName = '';
 let currentStream = null;
 let capturedBlob = null;
 
+function getDietLabel(dietPreference) {
+  if (dietPreference === 'veg') {
+    return 'Veg';
+  }
+
+  if (dietPreference === 'non-veg') {
+    return 'Non-Veg';
+  }
+
+  return '';
+}
+
+function parseEnteredItems(rawText) {
+  if (/\r?\n/.test(rawText)) {
+    return rawText
+      .split(/\r?\n/)
+      .map(item => item.trim())
+      .filter(Boolean);
+  }
+
+  return rawText
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function renderItemText(itemText) {
+  const lines = String(itemText || '')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (lines.length <= 1) {
+    return `<div class="item-text">• ${escapeHtml(itemText || 'Unnamed item')}</div>`;
+  }
+
+  const renderedLines = lines
+    .map(line => `<li>${escapeHtml(line)}</li>`)
+    .join('');
+
+  return `
+    <div class="item-text item-text-grouped">
+      <ul class="item-sublist">${renderedLines}</ul>
+    </div>
+  `;
+}
+
 // ================= LOAD MENUS =================
 async function loadTodayMenus() {
   try {
@@ -98,6 +145,13 @@ function renderMeals() {
     if (!menu || !Array.isArray(menu.items) || menu.items.length === 0) {
       content.innerHTML = '<p class="no-items">Menu not added yet</p>';
     } else {
+      if (menu.dietPreference) {
+        const badge = document.createElement('div');
+        badge.className = `meal-diet-badge ${menu.dietPreference}`;
+        badge.textContent = getDietLabel(menu.dietPreference);
+        content.appendChild(badge);
+      }
+
       const ul = document.createElement('ul');
       ul.className = 'items-list';
 
@@ -112,7 +166,7 @@ function renderMeals() {
         const timestampHtml = item.createdAt ? `<div class="item-date">${formatDateTime(item.createdAt)}</div>` : '';
         
         li.innerHTML = `
-          <div class="item-text">• ${item.text || 'Unnamed item'}</div>
+          ${renderItemText(item.text)}
           ${item.createdBy ? `<div class="item-by">${item.createdBy}</div>` : ''}
           ${item.imagePath ? `<img src="${item.imagePath}" class="item-image">` : ''}
           ${isOwner ? `<button class="item-delete-btn" data-item-id="${item._id}" title="Delete this item">×</button>` : ''}
@@ -318,6 +372,10 @@ function openAddItemForm(mealType) {
   document.getElementById('add-item-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   document.getElementById('add-item-form').reset();
+  const creatorInput = document.getElementById('item-creator');
+  if (creatorInput) {
+    creatorInput.value = currentUserName || '';
+  }
   
   // Reset camera state
   stopCamera();
@@ -357,17 +415,26 @@ async function submitNewItem(e) {
     return;
   }
 
-  const itemText = document.getElementById('item-name').value.trim();
-  if (!itemText) {
-    alert('Item name required');
+  const rawItems = document.getElementById('item-names').value;
+  const items = parseEnteredItems(rawItems);
+
+  if (items.length === 0) {
+    alert('At least one item is required');
     return;
   }
+
+  const dietPreference = document.getElementById('item-diet-type').value;
+  const createdByInput = document.getElementById('item-creator').value.trim();
 
   const formData = new FormData();
   formData.append('hostel', currentHostel);
   formData.append('mealType', currentMealForForm);
-  formData.append('singleItem', itemText);
-  formData.append('createdBy', currentUserName);
+  items.forEach(item => formData.append('items', item));
+  formData.append('createdBy', createdByInput || currentUserName || 'Anonymous');
+
+  if (dietPreference) {
+    formData.append('dietPreference', dietPreference);
+  }
 
   const photoInput = document.getElementById('item-photo');
   if (photoInput.files[0]) {
@@ -399,7 +466,7 @@ if (!res.ok || !result.success) {
     openMeal = currentMealForForm;
     closeAddItemForm();
     renderMeals();
-    showToast('Item added');
+    showToast(items.length > 1 ? 'Items added in one entry' : 'Item added');
   } catch (err) {
     console.error(err);
     showToast(err.message, 'error');
